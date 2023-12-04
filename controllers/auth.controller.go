@@ -150,6 +150,6 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	ctx.SetCookie("access_token", accessToken, config.AccessTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": access_token})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
 
 }

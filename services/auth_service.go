@@ -29,7 +29,6 @@ func (service *AuthService) SignUp(user models.SignUpInput) (*models.User, error
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = user.CreatedAt
 	user.Email = strings.ToLower(user.Email)
-	user.PasswordConfirm = ""
 	user.Verified = true
 	user.Role = "user"
 

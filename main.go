@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AkifhanIlgaz/random-question-selector/cfg"
+	services "github.com/AkifhanIlgaz/random-question-selector/services/user"
 )
 
 func main() {
@@ -13,4 +14,6 @@ func main() {
 	}
 
 	fmt.Println(config)
+
+	
 }

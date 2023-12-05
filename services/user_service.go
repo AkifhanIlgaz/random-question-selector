@@ -16,7 +16,7 @@ type UserService struct {
 	ctx        context.Context
 }
 
-func NewUserService(collection *mongo.Collection, ctx context.Context) *UserService {
+func NewUserService(ctx context.Context, collection *mongo.Collection) *UserService {
 	return &UserService{collection, ctx}
 }
 

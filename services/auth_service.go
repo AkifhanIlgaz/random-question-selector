@@ -18,14 +18,14 @@ type AuthService struct {
 	ctx        context.Context
 }
 
-func NewAuthService(collection *mongo.Collection, ctx context.Context) AuthService {
-	return AuthService{
+func NewAuthService(ctx context.Context, collection *mongo.Collection) *AuthService {
+	return &AuthService{
 		collection: collection,
 		ctx:        ctx,
 	}
 }
 
-func (service *AuthService) SignUp(user models.SignUpInput) (*models.User, error) {
+func (service *AuthService) SignUp(user *models.SignUpInput) (*models.User, error) {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = user.CreatedAt
 	user.Email = strings.ToLower(user.Email)
@@ -62,4 +62,8 @@ func (service *AuthService) SignUp(user models.SignUpInput) (*models.User, error
 	}
 
 	return newUser, nil
+}
+
+func (service *AuthService) SignIn(user *models.SignInInput) (*models.User, error) {
+	return nil, nil
 }

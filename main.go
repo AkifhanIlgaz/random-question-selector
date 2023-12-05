@@ -4,17 +4,23 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/AkifhanIlgaz/random-question-selector/cfg"
+	"github.com/AkifhanIlgaz/random-question-selector/controllers"
+	"github.com/AkifhanIlgaz/random-question-selector/middleware"
+	"github.com/AkifhanIlgaz/random-question-selector/routes"
+	"github.com/AkifhanIlgaz/random-question-selector/services"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func init() {
-
-}
+const mongoDBName = "random-question-selector"
+const mongoUsersCollection = "users"
 
 func main() {
 	config, err := cfg.LoadConfig(".")
@@ -29,10 +35,46 @@ func main() {
 		log.Fatal("Could not connect to mongo", err)
 	}
 
+	defer mongoClient.Disconnect(ctx)
+
 	redisClient, err := connectToRedis(ctx, config.RedisUri)
 	if err != nil {
 		log.Fatal("Could not connect to redis", err)
 	}
+
+	defer redisClient.Close()
+
+	userCollection := mongoClient.Database(mongoDBName).Collection(mongoUsersCollection)
+	userService := services.NewUserService(ctx, userCollection)
+	authService := services.NewAuthService(ctx, userCollection)
+
+	authController := controllers.NewAuthController(authService, userService)
+	userController := controllers.NewUserController(userService)
+	userMiddleware := middleware.NewUserMiddleware(userService)
+
+	authRouteController := routes.NewAuthRouteController(authController, userMiddleware)
+	userRouteController := routes.NewUserRouteController(userController, userMiddleware)
+
+	server := gin.Default()
+
+	value, err := redisClient.Get(ctx, "test").Result()
+	if err == redis.Nil {
+		fmt.Println("key: test does not exist")
+	} else if err != nil {
+		panic(err)
+	}
+
+	setCors(server)
+
+	router := server.Group("/api")
+	router.GET("/healthchecker", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": value})
+	})
+
+	authRouteController.AuthRoute(router)
+	userRouteController.UserRoute(router)
+
+	log.Fatal(server.Run(":" + config.Port))
 }
 
 func connectToMongo(ctx context.Context, uri string) (*mongo.Client, error) {
@@ -68,4 +110,12 @@ func connectToRedis(ctx context.Context, uri string) (*redis.Client, error) {
 	fmt.Println("Redis client connected successfully...")
 
 	return client, nil
+}
+
+func setCors(server *gin.Engine) {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:8000", "http://localhost:3000"}
+	corsConfig.AllowCredentials = true
+
+	server.Use(cors.New(corsConfig))
 }

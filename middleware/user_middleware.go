@@ -15,6 +15,12 @@ type UserMiddleware struct {
 	userService services.IUserService
 }
 
+func NewUserMiddleware(userService services.IUserService) UserMiddleware {
+	return UserMiddleware{
+		userService: userService,
+	}
+}
+
 func (middleware *UserMiddleware) DeserializeUser() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var accessToken string

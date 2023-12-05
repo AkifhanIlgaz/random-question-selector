@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -15,13 +16,14 @@ import (
 
 // TODO: Take private key public key as struct field
 type AuthController struct {
-	authService services.IAuthService
-	userService services.IUserService
+	authService *services.AuthService
+	userService *services.UserService
 	config      *cfg.Config
+	temp        *template.Template
 }
 
-func NewAuthController(authService services.IAuthService, userService services.IUserService, config *cfg.Config) AuthController {
-	return AuthController{
+func NewAuthController(authService *services.AuthService, userService *services.UserService, config *cfg.Config) *AuthController {
+	return &AuthController{
 		authService: authService,
 		userService: userService,
 		config:      config,

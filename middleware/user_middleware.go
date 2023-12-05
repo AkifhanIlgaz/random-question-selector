@@ -12,11 +12,11 @@ import (
 )
 
 type UserMiddleware struct {
-	userService services.IUserService
+	userService *services.UserService
 }
 
-func NewUserMiddleware(userService services.IUserService) UserMiddleware {
-	return UserMiddleware{
+func NewUserMiddleware(userService *services.UserService) *UserMiddleware {
+	return &UserMiddleware{
 		userService: userService,
 	}
 }

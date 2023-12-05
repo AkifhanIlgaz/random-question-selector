@@ -21,6 +21,8 @@ type Config struct {
 	AccessTokenMaxAge      int           `mapstructure:"ACCESS_TOKEN_MAXAGE"`
 	RefreshTokenMaxAge     int           `mapstructure:"REFRESH_TOKEN_MAXAGE"`
 
+	Origin string `mapstructure:"CLIENT_ORIGIN"`
+
 	EmailFrom    string `mapstructure:"EMAIL_FROM"`
 	SMTPHost     string `mapstructure:"SMTP_HOST"`
 	SMTPPassword string `mapstructure:"SMTP_PASSWORD"`

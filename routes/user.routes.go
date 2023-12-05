@@ -7,11 +7,11 @@ import (
 )
 
 type UserRouteController struct {
-	userController controllers.UserController
-	userMiddleware middleware.UserMiddleware
+	userController *controllers.UserController
+	userMiddleware *middleware.UserMiddleware
 }
 
-func NewUserRouteController(userController controllers.UserController, userMiddleware middleware.UserMiddleware) UserRouteController {
+func NewUserRouteController(userController *controllers.UserController, userMiddleware *middleware.UserMiddleware) UserRouteController {
 	return UserRouteController{
 		userController: userController,
 		userMiddleware: userMiddleware,

@@ -58,3 +58,36 @@ func (service *UserService) FindUserByEmail(email string) (*models.User, error) 
 
 	return &user, nil
 }
+
+func (service *UserService) UpdateUserById(id string, field string, value string) (*models.User, error) {
+	uid, _ := primitive.ObjectIDFromHex(id)
+	query := bson.M{
+		"_id": uid,
+	}
+	updateQuery := bson.M{
+		"$set": bson.M{
+			field: value,
+		},
+	}
+
+	_, err := service.collection.UpdateOne(service.ctx, query, updateQuery)
+	if err != nil {
+		return nil, fmt.Errorf("update user by id: %w", err)
+	}
+
+	return nil, nil
+}
+
+func (service *UserService) UpdateOne(field string, value interface{}) (*models.User, error) {
+	query := bson.M{field: value}
+	update := bson.M{"$set": bson.M{field: value}}
+	result, err := service.collection.UpdateOne(service.ctx, query, update)
+
+	fmt.Print(result.ModifiedCount)
+	if err != nil {
+		fmt.Print(err)
+		return &models.User{}, err
+	}
+
+	return &models.User{}, nil
+}

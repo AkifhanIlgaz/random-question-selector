@@ -14,16 +14,16 @@ import (
 )
 
 type AuthController struct {
-	authService *services.AuthService
-	userService *services.UserService
-	config      *cfg.Config
+	userService  *services.UserService
+	tokenService *services.TokenService
+	config       *cfg.Config
 }
 
-func NewAuthController(authService *services.AuthService, userService *services.UserService, config *cfg.Config) *AuthController {
+func NewAuthController(userService *services.UserService, tokenService *services.TokenService, config *cfg.Config) *AuthController {
 	return &AuthController{
-		authService: authService,
-		userService: userService,
-		config:      config,
+		userService:  userService,
+		tokenService: tokenService,
+		config:       config,
 	}
 }
 
@@ -35,7 +35,7 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	newUser, err := controller.authService.SignUp(&user)
+	newUser, err := controller.userService.CreateUser(&user)
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {
 			ctx.JSON(http.StatusConflict, gin.H{"status": "error", "message": err.Error()})
@@ -45,13 +45,13 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := utils.GenerateToken(controller.config.AccessTokenExpiresIn, newUser.ID, controller.config.AccessTokenPrivateKey)
+	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	refresh_token, err := utils.GenerateToken(controller.config.RefreshTokenExpiresIn, newUser.ID, controller.config.RefreshTokenPrivateKey)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.String())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -86,13 +86,13 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := utils.GenerateToken(controller.config.AccessTokenExpiresIn, user.ID, controller.config.AccessTokenPrivateKey)
+	access_token, err := controller.tokenService.GenerateAccessToken(user.ID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	refresh_token, err := utils.GenerateToken(controller.config.RefreshTokenExpiresIn, user.ID, controller.config.RefreshTokenPrivateKey)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.String())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return

@@ -2,10 +2,13 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
+	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,6 +21,36 @@ type UserService struct {
 
 func NewUserService(ctx context.Context, collection *mongo.Collection) *UserService {
 	return &UserService{collection, ctx}
+}
+
+func (service *UserService) CreateUser(user *models.SignUpInput) (*models.User, error) {
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = user.CreatedAt
+	user.Email = strings.ToLower(user.Email)
+	user.Verified = true
+	user.Role = "user"
+
+	hashedPassword, _ := utils.HashPassword(user.Password)
+	user.Password = hashedPassword
+
+	res, err := service.collection.InsertOne(service.ctx, &user)
+
+	if err != nil {
+		if er, ok := err.(mongo.WriteException); ok && er.WriteErrors[0].Code == 11000 {
+			return nil, errors.New("user with that email already exist")
+		}
+		return nil, err
+	}
+
+	var newUser *models.User
+	query := bson.M{"_id": res.InsertedID}
+
+	err = service.collection.FindOne(service.ctx, query).Decode(&newUser)
+	if err != nil {
+		return nil, err
+	}
+
+	return newUser, nil
 }
 
 func (service *UserService) FindUserById(id string) (*models.User, error) {

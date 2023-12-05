@@ -61,7 +61,7 @@ func main() {
 	}
 
 	userService := services.NewUserService(ctx, userCollection)
-	tokenService := services.NewTokenService(redisClient, &config)
+	tokenService := services.NewTokenService(ctx, redisClient, &config)
 
 	authController := controllers.NewAuthController(userService, tokenService, &config)
 	userController := controllers.NewUserController(userService)

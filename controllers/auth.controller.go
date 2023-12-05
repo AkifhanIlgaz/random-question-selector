@@ -45,7 +45,7 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID)
+	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.String())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -86,7 +86,7 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(user.ID)
+	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.String())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return

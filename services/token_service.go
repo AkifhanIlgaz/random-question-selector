@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -8,21 +9,24 @@ import (
 	"github.com/AkifhanIlgaz/random-question-selector/cfg"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt"
+	"github.com/thanhpk/randstr"
 )
 
 type TokenService struct {
 	redisClient *redis.Client
 	config      *cfg.Config
+	ctx         context.Context
 }
 
-func NewTokenService(redisClient *redis.Client, config *cfg.Config) *TokenService {
+func NewTokenService(ctx context.Context, redisClient *redis.Client, config *cfg.Config) *TokenService {
 	return &TokenService{
 		redisClient: redisClient,
 		config:      config,
+		ctx:         ctx,
 	}
 }
 
-func (service *TokenService) GenerateAccessToken(payload any) (string, error) {
+func (service *TokenService) GenerateAccessToken(uid string) (string, error) {
 	decodedPrivateKey, err := base64.StdEncoding.DecodeString(service.config.AccessTokenPrivateKey)
 	if err != nil {
 		return "", fmt.Errorf("could not decode key: %w", err)
@@ -36,7 +40,7 @@ func (service *TokenService) GenerateAccessToken(payload any) (string, error) {
 	now := time.Now().UTC()
 
 	claims := jwt.MapClaims{}
-	claims["sub"] = payload
+	claims["sub"] = uid
 	claims["exp"] = now.Add(service.config.AccessTokenExpiresIn).Unix()
 	claims["iat"] = now.Unix()
 	claims["nbf"] = now.Unix()
@@ -50,31 +54,46 @@ func (service *TokenService) GenerateAccessToken(payload any) (string, error) {
 
 }
 
-func (service *TokenService) ParseAccessToken(token string) (any, error) {
+func (service *TokenService) ParseAccessToken(token string) (string, error) {
 	decodedPublicKey, err := base64.StdEncoding.DecodeString(service.config.AccessTokenPublicKey)
 	if err != nil {
-		return nil, fmt.Errorf("could not decode: %w", err)
+		return "", fmt.Errorf("could not decode: %w", err)
 	}
 
 	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected method: %s", t.Header["alg"])
+			return "", fmt.Errorf("unexpected method: %s", t.Header["alg"])
 		}
 
 		return jwt.ParseRSAPublicKeyFromPEM(decodedPublicKey)
 	})
 	if err != nil {
-		return nil, fmt.Errorf("validate: %w", err)
+		return "", fmt.Errorf("validate: %w", err)
 	}
 
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
 	if !ok || !parsedToken.Valid {
-		return nil, fmt.Errorf("validate: invalid token")
+		return "", fmt.Errorf("validate: invalid token")
 	}
 
-	return claims["sub"], nil
+	return claims["sub"].(string), nil
 }
 
 func (service *TokenService) GenerateRefreshToken(uid string) (string, error) {
-	return "", nil
+	refreshToken := randstr.String(32)
+
+	err := service.redisClient.Set(service.ctx, uid, refreshToken, 0).Err()
+	if err != nil {
+		return "", fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	return refreshToken, nil
+}
+
+func (service *TokenService) DeleteRefreshToken(uid string) error {
+	if err := service.redisClient.Del(service.ctx, uid).Err(); err != nil {
+		return fmt.Errorf("delete refresh token: %w", err)
+	}
+
+	return nil
 }

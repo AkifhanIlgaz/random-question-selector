@@ -20,10 +20,11 @@ type AuthController struct {
 	config      *cfg.Config
 }
 
-func NewAuthController(authService services.IAuthService, userService services.IUserService) AuthController {
+func NewAuthController(authService services.IAuthService, userService services.IUserService, config *cfg.Config) AuthController {
 	return AuthController{
 		authService: authService,
 		userService: userService,
+		config:      config,
 	}
 }
 

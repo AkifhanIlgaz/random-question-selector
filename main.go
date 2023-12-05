@@ -48,7 +48,7 @@ func main() {
 	userService := services.NewUserService(ctx, userCollection)
 	authService := services.NewAuthService(ctx, userCollection)
 
-	authController := controllers.NewAuthController(authService, userService)
+	authController := controllers.NewAuthController(authService, userService, &config)
 	userController := controllers.NewUserController(userService)
 	userMiddleware := middleware.NewUserMiddleware(userService)
 

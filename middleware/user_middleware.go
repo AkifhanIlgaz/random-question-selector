@@ -20,7 +20,7 @@ func NewUserMiddleware(userService *services.UserService, tokenService *services
 	}
 }
 
-func (middleware *UserMiddleware) DeserializeUser() gin.HandlerFunc {
+func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var accessToken string
 		// Read access token from cookie or authorizaiton header

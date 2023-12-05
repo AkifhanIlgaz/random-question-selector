@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -44,8 +43,6 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
-
-	fmt.Println("new user", newUser.ID.Hex())
 
 	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex())
 	if err != nil {

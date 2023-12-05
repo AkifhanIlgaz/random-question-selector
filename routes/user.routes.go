@@ -21,6 +21,6 @@ func NewUserRouteController(userController *controllers.UserController, userMidd
 func (routerController *UserRouteController) UserRoute(rg *gin.RouterGroup) {
 	router := rg.Group("/users")
 
-	router.Use(routerController.userMiddleware.DeserializeUser())
+	router.Use(routerController.userMiddleware.ExtractUser())
 	router.GET("/me", routerController.userController.GetMe)
 }

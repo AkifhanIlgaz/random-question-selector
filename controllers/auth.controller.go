@@ -105,6 +105,13 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 }
 
 func (controller *AuthController) SignOut(ctx *gin.Context) {
+	refreshToken, _ := ctx.Cookie("refresh_token")
+
+	if err := controller.tokenService.DeleteRefreshToken(refreshToken); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
 	ctx.SetCookie("access_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, true)

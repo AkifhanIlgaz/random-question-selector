@@ -10,7 +10,6 @@ import (
 	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type AuthService struct {
@@ -42,15 +41,6 @@ func (service *AuthService) SignUp(user *models.SignUpInput) (*models.User, erro
 			return nil, errors.New("user with that email already exist")
 		}
 		return nil, err
-	}
-
-	// TODO: Create index for user in MongoDB
-	opt := options.Index()
-	opt.SetUnique(true)
-	index := mongo.IndexModel{Keys: bson.M{"email": 1}, Options: opt}
-
-	if _, err := service.collection.Indexes().CreateOne(service.ctx, index); err != nil {
-		return nil, errors.New("could not create index for email")
 	}
 
 	var newUser *models.User

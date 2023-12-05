@@ -14,6 +14,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -44,7 +45,21 @@ func main() {
 
 	defer redisClient.Close()
 
+	value, err := redisClient.Get(ctx, "test").Result()
+	if err == redis.Nil {
+		fmt.Println("key: test does not exist")
+	} else if err != nil {
+		log.Fatal("error with redis", err)
+	}
+
 	userCollection := mongoClient.Database(mongoDBName).Collection(mongoUsersCollection)
+	opt := options.Index()
+	opt.SetUnique(true)
+	index := mongo.IndexModel{Keys: bson.M{"email": 1}, Options: opt}
+	if _, err := userCollection.Indexes().CreateOne(ctx, index); err != nil {
+		log.Fatal("could not create index for email")
+	}
+
 	userService := services.NewUserService(ctx, userCollection)
 	authService := services.NewAuthService(ctx, userCollection)
 
@@ -56,13 +71,6 @@ func main() {
 	userRouteController := routes.NewUserRouteController(userController, userMiddleware)
 
 	server := gin.Default()
-
-	value, err := redisClient.Get(ctx, "test").Result()
-	if err == redis.Nil {
-		fmt.Println("key: test does not exist")
-	} else if err != nil {
-		panic(err)
-	}
 
 	setCors(server)
 

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
 
@@ -14,12 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// TODO: Take private key public key as struct field
 type AuthController struct {
 	authService *services.AuthService
 	userService *services.UserService
 	config      *cfg.Config
-	temp        *template.Template
 }
 
 func NewAuthController(authService *services.AuthService, userService *services.UserService, config *cfg.Config) *AuthController {
@@ -39,7 +36,6 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 	}
 
 	newUser, err := controller.authService.SignUp(&user)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {
 			ctx.JSON(http.StatusConflict, gin.H{"status": "error", "message": err.Error()})

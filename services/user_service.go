@@ -72,6 +72,8 @@ func (service *UserService) FindUserById(id string) (*models.User, error) {
 		return nil, fmt.Errorf("find user by id: %w", err)
 	}
 
+	fmt.Println("user", user)
+
 	return &user, nil
 }
 

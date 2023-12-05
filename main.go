@@ -65,7 +65,7 @@ func main() {
 
 	authController := controllers.NewAuthController(userService, tokenService, &config)
 	userController := controllers.NewUserController(userService)
-	userMiddleware := middleware.NewUserMiddleware(userService)
+	userMiddleware := middleware.NewUserMiddleware(userService, tokenService)
 
 	authRouteController := routes.NewAuthRouteController(authController, userMiddleware)
 	userRouteController := routes.NewUserRouteController(userController, userMiddleware)

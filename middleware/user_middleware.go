@@ -1,23 +1,22 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/AkifhanIlgaz/random-question-selector/cfg"
 	"github.com/AkifhanIlgaz/random-question-selector/services"
-	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type UserMiddleware struct {
-	userService *services.UserService
+	userService  *services.UserService
+	tokenService *services.TokenService
 }
 
-func NewUserMiddleware(userService *services.UserService) *UserMiddleware {
+func NewUserMiddleware(userService *services.UserService, tokenService *services.TokenService) *UserMiddleware {
 	return &UserMiddleware{
-		userService: userService,
+		userService:  userService,
+		tokenService: tokenService,
 	}
 }
 
@@ -41,15 +40,13 @@ func (middleware *UserMiddleware) DeserializeUser() gin.HandlerFunc {
 			return
 		}
 
-		config, _ := cfg.LoadConfig(".")
-
-		sub, err := utils.ValidateToken(accessToken, config.AccessTokenPublicKey)
+		sub, err := middleware.tokenService.ParseAccessToken(accessToken)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": err.Error()})
 			return
 		}
 
-		user, err := middleware.userService.FindUserById(fmt.Sprint(sub))
+		user, err := middleware.userService.FindUserById(sub)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "The user belonging to this token no logger exists"})
 			return

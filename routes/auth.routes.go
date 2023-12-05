@@ -11,7 +11,7 @@ type AuthRouteController struct {
 	userMiddleware *middleware.UserMiddleware
 }
 
-func NewAuthRouteController(authController *controllers.AuthController, userMiddleware* middleware.UserMiddleware) AuthRouteController {
+func NewAuthRouteController(authController *controllers.AuthController, userMiddleware *middleware.UserMiddleware) AuthRouteController {
 	return AuthRouteController{
 		authController: authController,
 		userMiddleware: userMiddleware,
@@ -25,5 +25,4 @@ func (routeController *AuthRouteController) AuthRoute(rg *gin.RouterGroup) {
 	router.POST("/login", routeController.authController.SignIn)
 	router.GET("/logout", routeController.userMiddleware.DeserializeUser(), routeController.authController.SignOut)
 	router.GET("/refresh", routeController.authController.RefreshAccessToken)
-
 }

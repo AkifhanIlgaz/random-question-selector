@@ -45,13 +45,15 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.String())
+	fmt.Println("new user", newUser.ID.Hex())
+
+	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.String())
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -86,13 +88,13 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.String())
+	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.String())
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex())
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -113,7 +115,6 @@ func (controller *AuthController) SignOut(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-// TODO: Store refresh token on Redis
 func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	message := "could not refresh access token"
 
@@ -123,27 +124,37 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	sub, err := utils.ValidateToken(refreshToken, controller.config.RefreshTokenPublicKey)
+	// Check if refresh token for the current user exists
+	uid, err := controller.tokenService.GetUidByRefreshToken(refreshToken)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
+		if strings.Contains(err.Error(), "refresh token doesn't exist") {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+			return
+		}
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	user, err := controller.userService.FindUserById(fmt.Sprint(sub))
+	access_token, err := controller.tokenService.GenerateAccessToken(uid)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "the user belonging to this token no logger exists"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	accessToken, err := utils.GenerateToken(controller.config.AccessTokenExpiresIn, user.ID, controller.config.AccessTokenPrivateKey)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
+	if err := controller.tokenService.DeleteRefreshToken(refreshToken); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, controller.config.AccessTokenMaxAge*60, "/", "localhost", false, true)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(uid)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	ctx.SetCookie("access_token", access_token, controller.config.AccessTokenMaxAge*60, "/", "localhost", false, true)
+	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
-
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": access_token})
 }

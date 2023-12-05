@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -82,7 +83,7 @@ func (service *TokenService) ParseAccessToken(token string) (string, error) {
 func (service *TokenService) GenerateRefreshToken(uid string) (string, error) {
 	refreshToken := randstr.String(32)
 
-	err := service.redisClient.Set(service.ctx, uid, refreshToken, 0).Err()
+	err := service.redisClient.Set(service.ctx, refreshToken, uid, 0).Err()
 	if err != nil {
 		return "", fmt.Errorf("generate refresh token: %w", err)
 	}
@@ -90,10 +91,23 @@ func (service *TokenService) GenerateRefreshToken(uid string) (string, error) {
 	return refreshToken, nil
 }
 
-func (service *TokenService) DeleteRefreshToken(uid string) error {
-	if err := service.redisClient.Del(service.ctx, uid).Err(); err != nil {
+func (service *TokenService) DeleteRefreshToken(refreshToken string) error {
+	if err := service.redisClient.Del(service.ctx, refreshToken).Err(); err != nil {
 		return fmt.Errorf("delete refresh token: %w", err)
 	}
 
 	return nil
+}
+
+func (service *TokenService) GetUidByRefreshToken(refreshToken string) (string, error) {
+	uid, err := service.redisClient.Get(service.ctx, refreshToken).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return "", errors.New("refresh token doesn't exist")
+
+		}
+		return "", fmt.Errorf("get uid by refresh token: %w", err)
+	}
+
+	return uid, nil
 }

@@ -41,16 +41,12 @@ func ValidateToken(token string, publicKey string) (any, error) {
 		return nil, fmt.Errorf("could not decode: %w", err)
 	}
 
-	key, err := jwt.ParseRSAPublicKeyFromPEM(decodedPublicKey)
-	if err != nil {
-		return "", fmt.Errorf("validate: parse key: %w", err)
-	}
-
 	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected method: %s", t.Header["alg"])
 		}
-		return key, nil
+
+		return jwt.ParseRSAPublicKeyFromPEM(decodedPublicKey)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("validate: %w", err)

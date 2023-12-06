@@ -82,7 +82,22 @@ func (service *QuestionService) UpdateQuestion(questionId string, updatedQuestio
 }
 
 func (service *QuestionService) GetAllQuestionsOfGroup(group string) ([]models.Question, error) {
-	return nil, nil
+	query := bson.M{
+		"group": group,
+	}
+
+	cursor, err := service.collection.Find(service.ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("get all questions of group: %w", err)
+	}
+
+	var questions []models.Question
+	err = cursor.All(service.ctx, &questions)
+	if err != nil {
+		return nil, fmt.Errorf("get all questions of group: %w", err)
+	}
+
+	return questions, nil
 }
 
 func (service *QuestionService) GetRandomQuestionsByGroup(group string, count int) ([]models.Question, error) {

@@ -22,6 +22,7 @@ import (
 
 const mongoDBName = "random-question-selector"
 const mongoUsersCollection = "users"
+const mongoQuestionCollection = "questions"
 
 func main() {
 	config, err := cfg.LoadConfig(".")
@@ -53,6 +54,8 @@ func main() {
 	}
 
 	userCollection := mongoClient.Database(mongoDBName).Collection(mongoUsersCollection)
+	questionCollection := mongoClient.Database(mongoDBName).Collection(mongoQuestionCollection)
+
 	opt := options.Index()
 	opt.SetUnique(true)
 	index := mongo.IndexModel{Keys: bson.M{"email": 1}, Options: opt}
@@ -62,13 +65,18 @@ func main() {
 
 	userService := services.NewUserService(ctx, userCollection)
 	tokenService := services.NewTokenService(ctx, redisClient, &config)
+	questionService := services.NewQuestionService(ctx, questionCollection)
 
 	authController := controllers.NewAuthController(userService, tokenService, &config)
 	userController := controllers.NewUserController(userService)
+	questionController := controllers.NewQuestionController(questionService)
+
 	userMiddleware := middleware.NewUserMiddleware(userService, tokenService)
+	questionMiddleware := middleware.NewQuestionMiddleware()
 
 	authRouteController := routes.NewAuthRouteController(authController, userMiddleware)
 	userRouteController := routes.NewUserRouteController(userController, userMiddleware)
+	questionRouterController := routes.NewQuestionRouteController(questionController, userMiddleware, questionMiddleware)
 
 	server := gin.Default()
 
@@ -81,6 +89,7 @@ func main() {
 
 	authRouteController.AuthRoute(router)
 	userRouteController.UserRoute(router)
+	questionRouterController.QuestionRoute(router)
 
 	log.Fatal(server.Run(":" + config.Port))
 }

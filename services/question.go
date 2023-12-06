@@ -8,14 +8,14 @@ import (
 )
 
 type QuestionService struct {
-	db  *mongo.Database
-	ctx context.Context
+	collection *mongo.Collection
+	ctx        context.Context
 }
 
-func NewQuestionService(ctx context.Context, db *mongo.Database) *QuestionService {
+func NewQuestionService(ctx context.Context, collection *mongo.Collection) *QuestionService {
 	return &QuestionService{
-		db:  db,
-		ctx: ctx,
+		collection: collection,
+		ctx:        ctx,
 	}
 }
 

@@ -21,13 +21,15 @@ func NewQuestionRouteController(questionController *controllers.QuestionControll
 }
 
 func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGroup) {
-	router := rg.Group("/question/:group", routeController.userMiddleware.ExtractUser(), routeController.questionMiddleware.ExtractGroup())
+	// TODO: Add routeController.userMiddleware.ExtractUser(),
+	router := rg.Group("/question/:group", routeController.questionMiddleware.ExtractGroup())
 
 	router.GET("/all", routeController.questionController.AllQuestions)
 	router.GET("/random", routeController.questionController.RandomQuestions)
 
-	router.POST("/add", routeController.questionController.AddQuestion)
-	router.PUT("/edit", routeController.questionController.EditQuestion)
+	// TODO: User must be the owner of the group in order to call these endpoints
+	router.POST("/", routeController.questionController.AddQuestion)
+	router.PUT("/", routeController.questionController.EditQuestion)
 	router.DELETE("/", routeController.questionController.DeleteQuestion)
 	router.GET("/", routeController.questionController.GetQuestionById)
 }

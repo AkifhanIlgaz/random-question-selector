@@ -22,7 +22,7 @@ func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 	response(ctx, "add word")
 }
 
-func (controller *QuestionController) EditQuestion(ctx *gin.Context) {
+func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
 	response(ctx, fmt.Sprintf("edit the #%v word", id))
 }

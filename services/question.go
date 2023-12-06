@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
@@ -25,8 +24,6 @@ func NewQuestionService(ctx context.Context, collection *mongo.Collection) *Ques
 }
 
 func (service *QuestionService) AddQuestion(question models.Question) error {
-	question.Id = primitive.NewObjectID()
-
 	_, err := service.collection.InsertOne(service.ctx, question, options.InsertOne())
 	if err != nil {
 		return fmt.Errorf("add question: %w", err)
@@ -50,7 +47,6 @@ func (service *QuestionService) DeleteQuestion(questionId string) error {
 }
 
 func (service *QuestionService) GetQuestion(questionId string) (*models.Question, error) {
-
 	query, err := buildIdQuery(questionId)
 	if err != nil {
 		return nil, fmt.Errorf("get question: %w", err)
@@ -58,7 +54,7 @@ func (service *QuestionService) GetQuestion(questionId string) (*models.Question
 
 	res := service.collection.FindOne(service.ctx, query)
 	if res.Err() == mongo.ErrNoDocuments {
-		return nil, errors.New(fmt.Sprintf("No question found with the id: %v", questionId))
+		return nil, fmt.Errorf("no question found with the id: %v", questionId)
 	}
 
 	var question models.Question
@@ -67,7 +63,21 @@ func (service *QuestionService) GetQuestion(questionId string) (*models.Question
 	return &question, nil
 }
 
-func (service *QuestionService) EditQuestion(questionId string, updatedQuestion models.Question) error {
+func (service *QuestionService) UpdateQuestion(questionId string, updatedQuestion models.Question) error {
+	query, err := buildIdQuery(questionId)
+	if err != nil {
+		return fmt.Errorf("update question: %w", err)
+	}
+
+	res, err := service.collection.ReplaceOne(service.ctx, query, updatedQuestion)
+	if err != nil {
+		return fmt.Errorf("update question: %w", err)
+	}
+
+	if res.MatchedCount == 0 {
+		return fmt.Errorf("no question found with the id: %v", questionId)
+	}
+
 	return nil
 }
 

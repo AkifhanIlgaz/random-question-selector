@@ -29,7 +29,7 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 
 	// TODO: User must be the owner of the group in order to call these endpoints
 	router.POST("/", routeController.questionController.AddQuestion)
-	router.PUT("/", routeController.questionController.EditQuestion)
+	router.PUT("/", routeController.questionController.UpdateQuestion)
 	router.DELETE("/", routeController.questionController.DeleteQuestion)
 	router.GET("/", routeController.questionController.GetQuestionById)
 }

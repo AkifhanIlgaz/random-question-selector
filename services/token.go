@@ -19,6 +19,11 @@ type TokenService struct {
 	ctx         context.Context
 }
 
+type AccessTokenClaims struct {
+	Groups []string `json:"groups"`
+	jwt.StandardClaims
+}
+
 func NewTokenService(ctx context.Context, redisClient *redis.Client, config *cfg.Config) *TokenService {
 	return &TokenService{
 		redisClient: redisClient,
@@ -40,11 +45,11 @@ func (service *TokenService) GenerateAccessToken(uid string) (string, error) {
 
 	now := time.Now().UTC()
 
-	claims := jwt.MapClaims{}
-	claims["sub"] = uid
-	claims["exp"] = now.Add(service.config.AccessTokenExpiresIn).Unix()
-	claims["iat"] = now.Unix()
-	claims["nbf"] = now.Unix()
+	claims := AccessTokenClaims{}
+	claims.Subject = uid
+	claims.ExpiresAt = now.Add(service.config.AccessTokenExpiresIn).Unix()
+	claims.IssuedAt = now.Unix()
+	claims.NotBefore = now.Unix()
 
 	token, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(key)
 	if err != nil {
@@ -52,32 +57,31 @@ func (service *TokenService) GenerateAccessToken(uid string) (string, error) {
 	}
 
 	return token, nil
-
 }
 
-func (service *TokenService) ParseAccessToken(token string) (string, error) {
+func (service *TokenService) ParseAccessToken(token string) (*AccessTokenClaims, error) {
 	decodedPublicKey, err := base64.StdEncoding.DecodeString(service.config.AccessTokenPublicKey)
 	if err != nil {
-		return "", fmt.Errorf("could not decode: %w", err)
+		return nil, fmt.Errorf("could not decode: %w", err)
 	}
 
-	parsedToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &AccessTokenClaims{}, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-			return "", fmt.Errorf("unexpected method: %s", t.Header["alg"])
+			return AccessTokenClaims{}, fmt.Errorf("unexpected method: %s", t.Header["alg"])
 		}
 
 		return jwt.ParseRSAPublicKeyFromPEM(decodedPublicKey)
 	})
 	if err != nil {
-		return "", fmt.Errorf("validate: %w", err)
+		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	claims, ok := parsedToken.Claims.(*AccessTokenClaims)
 	if !ok || !parsedToken.Valid {
-		return "", fmt.Errorf("validate: invalid token")
+		return nil, fmt.Errorf("validate: invalid token")
 	}
 
-	return claims["sub"].(string), nil
+	return claims, nil
 }
 
 func (service *TokenService) GenerateRefreshToken(uid string) (string, error) {

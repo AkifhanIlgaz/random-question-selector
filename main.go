@@ -83,7 +83,7 @@ func main() {
 	setCors(server)
 
 	router := server.Group("/api")
-	router.GET("/healthchecker", func(ctx *gin.Context) {
+	router.GET("/healthchecker", userMiddleware.ExtractUser(), func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": value})
 	})
 

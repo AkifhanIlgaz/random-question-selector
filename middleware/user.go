@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -40,13 +41,15 @@ func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 			return
 		}
 
-		sub, err := middleware.tokenService.ParseAccessToken(accessToken)
+		claims, err := middleware.tokenService.ParseAccessToken(accessToken)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": err.Error()})
 			return
 		}
 
-		user, err := middleware.userService.FindUserById(sub)
+		fmt.Println(claims)
+
+		user, err := middleware.userService.FindUserById(claims.Subject)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "The user belonging to this token no logger exists"})
 			return

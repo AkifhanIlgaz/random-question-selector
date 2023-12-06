@@ -29,6 +29,7 @@ type User struct {
 	Password  string             `json:"password" bson:"password"`
 	Role      string             `json:"role" bson:"role"`
 	Verified  bool               `json:"verified" bson:"verified"`
+	Groups    []string           `json:"groups" bson:"groups"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
 }
@@ -38,6 +39,7 @@ type UserResponse struct {
 	Name      string             `json:"name,omitempty" bson:"name,omitempty"`
 	Email     string             `json:"email,omitempty" bson:"email,omitempty"`
 	Role      string             `json:"role,omitempty" bson:"role,omitempty"`
+	Groups    []string           `json:"groups" bson:"groups"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at" bson:"updated_at"`
 }
@@ -48,6 +50,7 @@ func FilteredResponse(user *User) UserResponse {
 		Email:     user.Email,
 		Name:      user.Name,
 		Role:      user.Role,
+		Groups:    user.Groups,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}

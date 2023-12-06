@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -24,6 +25,11 @@ type AccessTokenClaims struct {
 	jwt.StandardClaims
 }
 
+type RedisClaims struct {
+	Subject string   `json:"subject"`
+	Groups  []string `json:"groups"`
+}
+
 func NewTokenService(ctx context.Context, redisClient *redis.Client, config *cfg.Config) *TokenService {
 	return &TokenService{
 		redisClient: redisClient,
@@ -32,7 +38,7 @@ func NewTokenService(ctx context.Context, redisClient *redis.Client, config *cfg
 	}
 }
 
-func (service *TokenService) GenerateAccessToken(uid string) (string, error) {
+func (service *TokenService) GenerateAccessToken(uid string, groups []string) (string, error) {
 	decodedPrivateKey, err := base64.StdEncoding.DecodeString(service.config.AccessTokenPrivateKey)
 	if err != nil {
 		return "", fmt.Errorf("could not decode key: %w", err)
@@ -46,6 +52,7 @@ func (service *TokenService) GenerateAccessToken(uid string) (string, error) {
 	now := time.Now().UTC()
 
 	claims := AccessTokenClaims{}
+	claims.Groups = groups
 	claims.Subject = uid
 	claims.ExpiresAt = now.Add(service.config.AccessTokenExpiresIn).Unix()
 	claims.IssuedAt = now.Unix()
@@ -84,10 +91,18 @@ func (service *TokenService) ParseAccessToken(token string) (*AccessTokenClaims,
 	return claims, nil
 }
 
-func (service *TokenService) GenerateRefreshToken(uid string) (string, error) {
+func (service *TokenService) GenerateRefreshToken(uid string, groups []string) (string, error) {
 	refreshToken := randstr.String(32)
 
-	err := service.redisClient.Set(service.ctx, refreshToken, uid, 0).Err()
+	claims, err := encode(RedisClaims{
+		Subject: uid,
+		Groups:  groups,
+	})
+	if err != nil {
+		return "", fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	err = service.redisClient.Set(service.ctx, refreshToken, claims, 0).Err()
 	if err != nil {
 		return "", fmt.Errorf("generate refresh token: %w", err)
 	}
@@ -103,15 +118,27 @@ func (service *TokenService) DeleteRefreshToken(refreshToken string) error {
 	return nil
 }
 
-func (service *TokenService) GetUidByRefreshToken(refreshToken string) (string, error) {
-	uid, err := service.redisClient.Get(service.ctx, refreshToken).Result()
+func (service *TokenService) GetClaims(refreshToken string) (RedisClaims, error) {
+
+	claims, err := service.redisClient.Get(service.ctx, refreshToken).Bytes()
 	if err != nil {
 		if err == redis.Nil {
-			return "", errors.New("refresh token doesn't exist")
+			return RedisClaims{}, errors.New("refresh token doesn't exist")
 
 		}
-		return "", fmt.Errorf("get uid by refresh token: %w", err)
+		return RedisClaims{}, fmt.Errorf("get uid by refresh token: %w", err)
 	}
 
-	return uid, nil
+	return decode(claims)
+
+}
+func encode(v RedisClaims) ([]byte, error) {
+	return json.Marshal(&v)
+}
+
+func decode(v []byte) (RedisClaims, error) {
+	var claims RedisClaims
+	err := json.Unmarshal(v, &claims)
+
+	return claims, err
 }

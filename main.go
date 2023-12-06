@@ -84,6 +84,8 @@ func main() {
 
 	router := server.Group("/api")
 	router.GET("/healthchecker", userMiddleware.ExtractUser(), func(ctx *gin.Context) {
+		fmt.Println(ctx.Get("currentUser"))
+
 		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": value})
 	})
 

@@ -44,13 +44,13 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex())
+	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex(), newUser.Groups)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex())
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex(), newUser.Groups)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -85,13 +85,13 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex())
+	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex(), user.Groups)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex())
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex(), user.Groups)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -129,7 +129,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	}
 
 	// Check if refresh token for the current user exists
-	uid, err := controller.tokenService.GetUidByRefreshToken(refreshToken)
+	claims, err := controller.tokenService.GetClaims(refreshToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "refresh token doesn't exist") {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
@@ -139,7 +139,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(uid)
+	access_token, err := controller.tokenService.GenerateAccessToken(claims.Subject, claims.Groups)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -150,7 +150,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(uid)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(claims.Subject, claims.Groups)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
 		return

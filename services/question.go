@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type QuestionService struct {
@@ -20,6 +23,13 @@ func NewQuestionService(ctx context.Context, collection *mongo.Collection) *Ques
 }
 
 func (service *QuestionService) AddQuestion(question models.Question) error {
+	question.Id = primitive.NewObjectID()
+
+	_, err := service.collection.InsertOne(service.ctx, question, options.InsertOne())
+	if err != nil {
+		return fmt.Errorf("add question: %w", err)
+	}
+
 	return nil
 }
 

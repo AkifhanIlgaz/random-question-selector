@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -34,6 +35,20 @@ func (service *QuestionService) AddQuestion(question models.Question) error {
 }
 
 func (service *QuestionService) DeleteQuestion(questionId string) error {
+	id, err := primitive.ObjectIDFromHex(questionId)
+	if err != nil {
+		return fmt.Errorf("delete question: %w", err)
+	}
+
+	query := bson.M{
+		"_id": id,
+	}
+
+	_, err = service.collection.DeleteOne(service.ctx, query)
+	if err != nil {
+		return fmt.Errorf("delete question: %w", err)
+	}
+
 	return nil
 }
 

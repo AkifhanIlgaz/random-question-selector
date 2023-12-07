@@ -101,7 +101,24 @@ func (service *QuestionService) GetAllQuestionsOfGroup(group string) ([]models.Q
 }
 
 func (service *QuestionService) GetRandomQuestionsByGroup(group string, count int) ([]models.Question, error) {
-	return nil, nil
+	matchStage := bson.D{{Key: "$match", Value: bson.D{{Key: "group", Value: group}}}}
+	randomStage := bson.D{{Key: "$sample", Value: bson.D{{Key: "size", Value: count}}}}
+
+	cursor, err := service.collection.Aggregate(service.ctx, mongo.Pipeline{
+		matchStage,
+		randomStage,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get random questions by group: %w", err)
+	}
+
+	var questions []models.Question
+	err = cursor.All(service.ctx, &questions)
+	if err != nil {
+		return nil, fmt.Errorf("get random questions by group: %w", err)
+	}
+
+	return questions, nil
 }
 
 func buildIdQuery(objectId string) (primitive.M, error) {

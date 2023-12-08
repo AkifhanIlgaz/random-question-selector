@@ -26,9 +26,9 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 	router.GET("/all", routeController.questionController.AllQuestions)
 	router.GET("/random", routeController.questionController.RandomQuestions)
 
-	// TODO: User must be the owner of the group in order to call these endpoints
-	router.POST("/", routeController.questionController.AddQuestion)
-	router.PUT("/", routeController.questionController.UpdateQuestion)
-	router.DELETE("/", routeController.questionController.DeleteQuestion)
-	router.GET("/", routeController.userMiddleware.IsAdminOfGroup(), routeController.questionController.GetQuestionById)
+	adminRoute := router.Group("/", routeController.userMiddleware.IsAdminOfGroup())
+	adminRoute.POST("", routeController.questionController.AddQuestion)
+	adminRoute.PUT("", routeController.questionController.UpdateQuestion)
+	adminRoute.DELETE("", routeController.questionController.DeleteQuestion)
+	adminRoute.GET("", routeController.questionController.GetQuestionById)
 }

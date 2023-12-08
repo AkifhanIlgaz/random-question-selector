@@ -46,10 +46,43 @@ func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("currentUser", gin.H{
-			"uid":    claims.Subject,
-			"groups": claims.Groups,
+		ctx.Set("currentUser", services.RedisClaims{
+			Subject: claims.Subject,
+			Groups:  claims.Groups,
 		})
 		ctx.Next()
 	}
+}
+
+func (middleware *UserMiddleware) IsAdminOfGroup() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		group := ctx.GetString("questionGroup")
+		raw, ok := ctx.Get("currentUser")
+		if !ok {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not logged in"})
+			return
+		}
+
+		user, ok := raw.(services.RedisClaims)
+		if !ok {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not logged in"})
+			return
+		}
+
+		if !contains(user.Groups, group) {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not admin of this group"})
+			return
+		}
+
+		ctx.Next()
+	}
+}
+
+func contains(groups []string, group string) bool {
+	for _, g := range groups {
+		if g == group {
+			return true
+		}
+	}
+	return false
 }

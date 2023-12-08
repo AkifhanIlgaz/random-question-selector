@@ -21,8 +21,7 @@ func NewQuestionRouteController(questionController *controllers.QuestionControll
 }
 
 func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGroup) {
-	// TODO: Add routeController.userMiddleware.ExtractUser(),
-	router := rg.Group("/question/:group", routeController.questionMiddleware.ExtractGroup())
+	router := rg.Group("/question/:group", routeController.userMiddleware.ExtractUser(), routeController.questionMiddleware.ExtractGroup())
 
 	router.GET("/all", routeController.questionController.AllQuestions)
 	router.GET("/random", routeController.questionController.RandomQuestions)
@@ -31,5 +30,5 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 	router.POST("/", routeController.questionController.AddQuestion)
 	router.PUT("/", routeController.questionController.UpdateQuestion)
 	router.DELETE("/", routeController.questionController.DeleteQuestion)
-	router.GET("/", routeController.questionController.GetQuestionById)
+	router.GET("/", routeController.userMiddleware.IsAdminOfGroup(), routeController.questionController.GetQuestionById)
 }

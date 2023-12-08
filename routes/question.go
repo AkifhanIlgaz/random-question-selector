@@ -23,12 +23,17 @@ func NewQuestionRouteController(questionController *controllers.QuestionControll
 func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGroup) {
 	router := rg.Group("/question/:group", routeController.userMiddleware.ExtractUser(), routeController.questionMiddleware.ExtractGroup())
 
-	router.GET("/all", routeController.questionController.AllQuestions)
-	router.GET("/random", routeController.questionController.RandomQuestions)
+	{
+		router.GET("/all", routeController.questionController.AllQuestions)
+		router.GET("/random", routeController.questionController.RandomQuestions)
+	}
 
 	adminRoute := router.Group("/", routeController.userMiddleware.IsAdminOfGroup())
-	adminRoute.POST("", routeController.questionController.AddQuestion)
-	adminRoute.PUT("", routeController.questionController.UpdateQuestion)
-	adminRoute.DELETE("", routeController.questionController.DeleteQuestion)
-	adminRoute.GET("", routeController.questionController.GetQuestionById)
+	{
+		adminRoute.POST("", routeController.questionController.AddQuestion)
+		adminRoute.PUT("", routeController.questionController.UpdateQuestion)
+		adminRoute.DELETE("", routeController.questionController.DeleteQuestion)
+		adminRoute.GET("", routeController.questionController.GetQuestionById)
+	}
+
 }

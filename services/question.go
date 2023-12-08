@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
@@ -52,8 +53,25 @@ func (service *QuestionService) DeleteQuestion(questionId string) error {
 	return nil
 }
 
-func (service *QuestionService) GetQuestion(questionId string) (models.Question, error) {
-	return models.Question{}, nil
+func (service *QuestionService) GetQuestion(questionId string) (*models.Question, error) {
+	id, err := primitive.ObjectIDFromHex(questionId)
+	if err != nil {
+		return nil, fmt.Errorf("delete question: %w", err)
+	}
+
+	query := bson.M{
+		"_id": id,
+	}
+
+	res := service.collection.FindOne(service.ctx, query)
+	if res.Err() == mongo.ErrNoDocuments {
+		return nil, errors.New(fmt.Sprintf("No question found with the id: %v", questionId))
+	}
+
+	var question models.Question
+	res.Decode(&question)
+
+	return &question, nil
 }
 
 func (service *QuestionService) EditQuestion(questionId string, updatedQuestion models.Question) error {

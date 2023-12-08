@@ -31,6 +31,10 @@ func (controller *UserController) GetMe(ctx *gin.Context) {
 }
 
 func (controller *UserController) AssignGroup(ctx *gin.Context) {
+	// ! Possible Errors
+	// ! The assigner isn't the admin of the group
+	// ! The assignee is already the admin of the group
+
 	group := ctx.Query("group")
 	id := ctx.Query("id")
 

@@ -24,10 +24,6 @@ func (routerController *UserRouteController) UserRoute(rg *gin.RouterGroup) {
 
 	router.GET("/me", routerController.userController.GetMe)
 
-	// ! Possible Errors
-	// The assigner isn't the admin of the group
-	// The assignee is already the admin of the group
-
 	// ! Middlewares
 	// IsAdminOfTheGroup
 

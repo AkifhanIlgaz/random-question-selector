@@ -20,7 +20,17 @@ func NewUserRouteController(userController *controllers.UserController, userMidd
 
 func (routerController *UserRouteController) UserRoute(rg *gin.RouterGroup) {
 	router := rg.Group("/users")
-
 	router.Use(routerController.userMiddleware.ExtractUser())
+
 	router.GET("/me", routerController.userController.GetMe)
+
+	// ! Possible Errors
+	// The assigner isn't the admin of the group
+	// The assignee is already the admin of the group
+
+	// ! Middlewares
+	// IsAdminOfTheGroup
+
+	// ? /assign?id=<id>&group=<group>
+	router.POST("/assign", routerController.userController.AssignGroup)
 }

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
@@ -27,4 +28,12 @@ func (controller *UserController) GetMe(ctx *gin.Context) {
 			"user": models.FilteredResponse(currentUser),
 		},
 	})
+}
+
+func (controller *UserController) AssignGroup(ctx *gin.Context) {
+	group := ctx.Query("group")
+	id := ctx.Query("id")
+
+	fmt.Println("Group", group)
+	fmt.Println("Id", id)
 }

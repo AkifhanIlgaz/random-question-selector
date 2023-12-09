@@ -36,13 +36,9 @@ func (service *QuestionService) AddQuestion(question models.Question) error {
 }
 
 func (service *QuestionService) DeleteQuestion(questionId string) error {
-	id, err := primitive.ObjectIDFromHex(questionId)
+	query, err := buildIdQuery(questionId)
 	if err != nil {
 		return fmt.Errorf("delete question: %w", err)
-	}
-
-	query := bson.M{
-		"_id": id,
 	}
 
 	_, err = service.collection.DeleteOne(service.ctx, query)
@@ -54,13 +50,10 @@ func (service *QuestionService) DeleteQuestion(questionId string) error {
 }
 
 func (service *QuestionService) GetQuestion(questionId string) (*models.Question, error) {
-	id, err := primitive.ObjectIDFromHex(questionId)
-	if err != nil {
-		return nil, fmt.Errorf("delete question: %w", err)
-	}
 
-	query := bson.M{
-		"_id": id,
+	query, err := buildIdQuery(questionId)
+	if err != nil {
+		return nil, fmt.Errorf("get question: %w", err)
 	}
 
 	res := service.collection.FindOne(service.ctx, query)
@@ -84,4 +77,17 @@ func (service *QuestionService) GetAllQuestionsOfGroup(group string) ([]models.Q
 
 func (service *QuestionService) GetRandomQuestionsByGroup(group string, count int) ([]models.Question, error) {
 	return nil, nil
+}
+
+func buildIdQuery(objectId string) (primitive.M, error) {
+	id, err := primitive.ObjectIDFromHex(objectId)
+	if err != nil {
+		return nil, fmt.Errorf("delete question: %w", err)
+	}
+
+	query := bson.M{
+		"_id": id,
+	}
+
+	return query, nil
 }

@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
 	"github.com/AkifhanIlgaz/random-question-selector/services"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/slices"
 )
 
 type UserController struct {
@@ -31,13 +31,36 @@ func (controller *UserController) GetMe(ctx *gin.Context) {
 }
 
 func (controller *UserController) AssignGroup(ctx *gin.Context) {
-	// ! Possible Errors
-	// ! The assigner isn't the admin of the group
-	// ! The assignee is already the admin of the group
-
 	group := ctx.Query("group")
 	id := ctx.Query("id")
 
-	fmt.Println("Group", group)
-	fmt.Println("Id", id)
+	candidate, err := controller.userService.FindUserById(id)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "User doesn't exist",
+		})
+		return
+	}
+
+	usersGroups := candidate.Groups
+	if slices.Contains(usersGroups, group) {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "User is already admin of the group",
+		})
+		return
+	}
+
+	usersGroups = append(usersGroups, group)
+	_, err = controller.userService.UpdateUserById(id, "groups", usersGroups)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": "Something went wrong",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }

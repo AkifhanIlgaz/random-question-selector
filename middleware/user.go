@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -40,6 +41,7 @@ func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 			return
 		}
 
+		// ! Access token is expired situations must be handled by the client
 		claims, err := middleware.tokenService.ParseAccessToken(accessToken)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": err.Error()})
@@ -57,13 +59,17 @@ func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 func (middleware *UserMiddleware) IsAdminOfGroup() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		group := ctx.GetString("questionGroup")
+
 		raw, ok := ctx.Get("currentUser")
 		if !ok {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not logged in"})
 			return
 		}
 
+		fmt.Println(group)
+
 		user, ok := raw.(services.RedisClaims)
+		fmt.Println(user)
 		if !ok {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not logged in"})
 			return

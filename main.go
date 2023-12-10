@@ -75,7 +75,7 @@ func main() {
 	questionMiddleware := middleware.NewQuestionMiddleware()
 
 	authRouteController := routes.NewAuthRouteController(authController, userMiddleware)
-	userRouteController := routes.NewUserRouteController(userController, userMiddleware)
+	userRouteController := routes.NewUserRouteController(userController, userMiddleware, questionMiddleware)
 	questionRouterController := routes.NewQuestionRouteController(questionController, userMiddleware, questionMiddleware)
 
 	server := gin.Default()
@@ -84,8 +84,6 @@ func main() {
 
 	router := server.Group("/api")
 	router.GET("/healthchecker", userMiddleware.ExtractUser(), func(ctx *gin.Context) {
-		fmt.Println(ctx.Get("currentUser"))
-
 		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": value})
 	})
 

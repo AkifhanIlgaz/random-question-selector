@@ -94,7 +94,7 @@ func (service *UserService) FindUserByEmail(email string) (*models.User, error) 
 	return &user, nil
 }
 
-func (service *UserService) UpdateUserById(id string, field string, value string) (*models.User, error) {
+func (service *UserService) UpdateUserById(id string, field string, value any) (*models.User, error) {
 	uid, _ := primitive.ObjectIDFromHex(id)
 	query := bson.M{
 		"_id": uid,

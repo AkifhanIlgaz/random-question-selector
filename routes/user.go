@@ -7,14 +7,16 @@ import (
 )
 
 type UserRouteController struct {
-	userController *controllers.UserController
-	userMiddleware *middleware.UserMiddleware
+	userController     *controllers.UserController
+	userMiddleware     *middleware.UserMiddleware
+	questionMiddleware *middleware.QuestionMiddleware
 }
 
-func NewUserRouteController(userController *controllers.UserController, userMiddleware *middleware.UserMiddleware) UserRouteController {
+func NewUserRouteController(userController *controllers.UserController, userMiddleware *middleware.UserMiddleware, questionMiddleware *middleware.QuestionMiddleware) UserRouteController {
 	return UserRouteController{
-		userController: userController,
-		userMiddleware: userMiddleware,
+		userController:     userController,
+		userMiddleware:     userMiddleware,
+		questionMiddleware: questionMiddleware,
 	}
 }
 
@@ -24,9 +26,6 @@ func (routerController *UserRouteController) UserRoute(rg *gin.RouterGroup) {
 
 	router.GET("/me", routerController.userController.GetMe)
 
-	// ! Middlewares
-	// IsAdminOfTheGroup
-
 	// ? /assign?id=<id>&group=<group>
-	router.POST("/assign", routerController.userController.AssignGroup)
+	router.POST("/assign", routerController.questionMiddleware.ExtractGroup(), routerController.userMiddleware.IsAdminOfGroup(), routerController.userController.AssignGroup)
 }

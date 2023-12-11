@@ -21,14 +21,14 @@ func NewQuestionController(questionService *services.QuestionService) *QuestionC
 }
 
 func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
-	var question models.Question
+	question := models.Question{
+		Group: ctx.GetString("questionGroup"),
+	}
 
 	if err := ctx.ShouldBindJSON(&question); err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
-
-	question.Group = ctx.GetString("questionGroup")
 
 	err := controller.questionService.AddQuestion(question)
 	if err != nil {

@@ -28,7 +28,7 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 		router.GET("/random", routeController.questionController.RandomQuestions)
 	}
 
-	adminRoute := router.Group("/", routeController.userMiddleware.IsAdminOfGroup())
+	adminRoute := router.Group("/")
 	{
 		adminRoute.POST("", routeController.questionController.AddQuestion)
 		adminRoute.PUT("", routeController.questionController.UpdateQuestion)

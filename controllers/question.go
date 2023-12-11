@@ -9,6 +9,7 @@ import (
 	"github.com/AkifhanIlgaz/random-question-selector/services"
 	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/slices"
 )
 
 type QuestionController struct {
@@ -22,12 +23,15 @@ func NewQuestionController(questionService *services.QuestionService) *QuestionC
 }
 
 func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
-	question := models.Question{
-		Group: ctx.GetString("questionGroup"),
-	}
-
+	var question models.Question
 	if err := ctx.ShouldBindJSON(&question); err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		return
+	}
+
+	user := ctx.MustGet("currentUser").(*models.User)
+	if !isAdmin(user.Groups, question.Group) {
+		utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, utils.ErrNotAdmin.Error(), nil)
 		return
 	}
 
@@ -40,20 +44,20 @@ func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
 }
 
+// TODO:
 func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
 
-	var input models.Question
-	if err := ctx.ShouldBindJSON(&input); err != nil {
+	var updatedQuestion models.Question
+	if err := ctx.ShouldBindJSON(&updatedQuestion); err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
-	updatedQuestion := models.Question{
-		Group:        input.Group,
-		Text:         input.Text,
-		Answer:       input.Answer,
-		AnswerSource: input.AnswerSource,
+	user := ctx.MustGet("currentUser").(*models.User)
+	if !isAdmin(user.Groups, updatedQuestion.Group) {
+		utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, utils.ErrNotAdmin.Error(), nil)
+		return
 	}
 
 	err := controller.questionService.UpdateQuestion(id, updatedQuestion)
@@ -61,16 +65,28 @@ func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 		fmt.Println(err)
 	}
 
-	response(ctx, fmt.Sprintf("edit the #%v word", id))
 }
 
 func (controller *QuestionController) DeleteQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
 
-	fmt.Println(ctx.GetString("questionGroup"))
+	question, err := controller.questionService.GetQuestion(id)
+	if err != nil {
+		if errors.Is(err, utils.ErrNoQuestion) {
+			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, utils.ErrNoQuestion.Error(), nil)
+			return
+		}
+		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, utils.ErrSomethingWentWrong.Error(), nil)
+		return
+	}
 
-	err := controller.questionService.DeleteQuestion(id)
+	user := ctx.MustGet("currentUser").(*models.User)
+	if !isAdmin(user.Groups, question.Group) {
+		utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, utils.ErrNotAdmin.Error(), nil)
+		return
+	}
 
+	err = controller.questionService.DeleteQuestion(id)
 	if err != nil {
 		if errors.Is(err, utils.ErrNoQuestion) {
 			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, err.Error(), nil)
@@ -85,7 +101,20 @@ func (controller *QuestionController) DeleteQuestion(ctx *gin.Context) {
 
 func (controller *QuestionController) GetQuestionById(ctx *gin.Context) {
 	id := ctx.Query("id")
-	response(ctx, fmt.Sprintf("get the #%v word", id))
+
+	question, err := controller.questionService.GetQuestion(id)
+	if err != nil {
+		if errors.Is(err, utils.ErrNoQuestion) {
+			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, utils.ErrNoQuestion.Error(), nil)
+			return
+		}
+		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, utils.ErrSomethingWentWrong.Error(), nil)
+		return
+	}
+
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+		"data": question,
+	})
 }
 
 func (controller *QuestionController) RandomQuestions(ctx *gin.Context) {
@@ -104,4 +133,8 @@ func response(ctx *gin.Context, message string) {
 		"group":   questionGroup,
 		"message": message,
 	})
+}
+
+func isAdmin(groups []string, group string) bool {
+	return slices.Contains(groups, group)
 }

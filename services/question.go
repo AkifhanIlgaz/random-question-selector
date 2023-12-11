@@ -59,7 +59,7 @@ func (service *QuestionService) GetQuestion(questionId string) (*models.Question
 
 	res := service.collection.FindOne(service.ctx, query)
 	if res.Err() == mongo.ErrNoDocuments {
-		return nil, fmt.Errorf("no question found with the id: %v", questionId)
+		return nil, utils.ErrNoQuestion
 	}
 
 	var question models.Question

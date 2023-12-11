@@ -49,10 +49,13 @@ func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("currentUser", services.RedisClaims{
-			Subject: claims.Subject,
-			Groups:  claims.Groups,
-		})
+		user, err := middleware.userService.FindUserById(claims.Subject)
+		if err != nil {
+			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, "User does not exist", nil)
+			return
+		}
+
+		ctx.Set("currentUser", user)
 		ctx.Next()
 	}
 }
@@ -67,7 +70,7 @@ func (middleware *UserMiddleware) IsAdminOfGroup() gin.HandlerFunc {
 			return
 		}
 
-		user, ok := raw.(services.RedisClaims)
+		user, ok := raw.(*models.User)
 		if !ok {
 			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, "You are not logged in", nil)
 			return

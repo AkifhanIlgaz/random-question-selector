@@ -21,7 +21,7 @@ func NewQuestionRouteController(questionController *controllers.QuestionControll
 }
 
 func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGroup) {
-	router := rg.Group("/question/:group", routeController.userMiddleware.ExtractUser(), routeController.questionMiddleware.ExtractGroup())
+	router := rg.Group("/question", routeController.userMiddleware.ExtractUser())
 
 	{
 		router.GET("/all", routeController.questionController.AllQuestions)
@@ -36,5 +36,4 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 		// ? Should be the admin
 		adminRoute.GET("", routeController.questionController.GetQuestionById)
 	}
-
 }

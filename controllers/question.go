@@ -43,7 +43,7 @@ func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
 
-	var input models.UpdateQuestionInput
+	var input models.Question
 	if err := ctx.ShouldBindJSON(&input); err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return

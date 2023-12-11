@@ -30,29 +30,29 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 	var user models.SignUpInput
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	newUser, err := controller.userService.CreateUser(&user)
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {
-			ctx.JSON(http.StatusConflict, gin.H{"status": "error", "message": err.Error()})
+			utils.ResponseWithStatusMessage(ctx, http.StatusConflict, models.StatusFail, err.Error(), nil)
 			return
 		}
-		ctx.JSON(http.StatusBadGateway, gin.H{"status": "error", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadGateway, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex(), newUser.Groups)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex(), newUser.Groups)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
@@ -60,40 +60,42 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	ctx.JSON(http.StatusCreated, gin.H{"status": "success", "data": gin.H{"user": models.FilteredResponse(newUser)}})
+	utils.ResponseWithStatusMessage(ctx, http.StatusCreated, models.StatusSuccess, "", map[string]any{
+		"data": gin.H{"user": models.FilteredResponse(newUser)},
+	})
 }
 
 func (controller *AuthController) SignIn(ctx *gin.Context) {
 	var credentials *models.SignInInput
 	if err := ctx.ShouldBindJSON(&credentials); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	user, err := controller.userService.FindUserByEmail(credentials.Email)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or password"})
+			utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, "Invalid email or password", nil)
 			return
 		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	if err := utils.VerifyPassword(user.Password, credentials.Password); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": "Invalid email or Password"})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, "Invalid email or password", nil)
 		return
 	}
 
 	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex(), user.Groups)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex(), user.Groups)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
@@ -101,14 +103,17 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": access_token})
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+		"access_token": access_token,
+	})
+
 }
 
 func (controller *AuthController) SignOut(ctx *gin.Context) {
 	refreshToken, _ := ctx.Cookie("refresh_token")
 
 	if err := controller.tokenService.DeleteRefreshToken(refreshToken); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
@@ -116,6 +121,7 @@ func (controller *AuthController) SignOut(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, true)
 
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
@@ -124,7 +130,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 
 	refreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": message})
+		utils.ResponseWithStatusMessage(ctx, http.StatusForbidden, models.StatusFail, message, nil)
 		return
 	}
 
@@ -132,27 +138,27 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	claims, err := controller.tokenService.GetClaims(refreshToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "refresh token doesn't exist") {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+			utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 			return
 		}
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	access_token, err := controller.tokenService.GenerateAccessToken(claims.Subject, claims.Groups)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	if err := controller.tokenService.DeleteRefreshToken(refreshToken); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	refresh_token, err := controller.tokenService.GenerateRefreshToken(claims.Subject, claims.Groups)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
@@ -160,5 +166,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": access_token})
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+		"access_token": access_token,
+	})
 }

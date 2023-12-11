@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ResponseWithStatusMessage(ctx *gin.Context, code int, status models.Status, message string) {
+func ResponseWithStatusMessage(ctx *gin.Context, code int, status models.Status, message string, additionalInfo map[string]any) {
 	message = strings.TrimSpace(message)
 	statusMessage := models.StatusMessage(status)
 
@@ -16,6 +16,9 @@ func ResponseWithStatusMessage(ctx *gin.Context, code int, status models.Status,
 	}
 	if message != "" {
 		h["message"] = message
+	}
+	for k, v := range additionalInfo {
+		h[k] = v
 	}
 
 	switch status {

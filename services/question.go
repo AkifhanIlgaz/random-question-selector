@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
+	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,9 +39,13 @@ func (service *QuestionService) DeleteQuestion(questionId string) error {
 		return fmt.Errorf("delete question: %w", err)
 	}
 
-	_, err = service.collection.DeleteOne(service.ctx, query)
+	res, err := service.collection.DeleteOne(service.ctx, query)
 	if err != nil {
 		return fmt.Errorf("delete question: %w", err)
+	}
+
+	if res.DeletedCount == 0 {
+		return utils.ErrNoQuestion
 	}
 
 	return nil

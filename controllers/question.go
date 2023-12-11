@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -46,7 +47,21 @@ func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 
 func (controller *QuestionController) DeleteQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
-	response(ctx, fmt.Sprintf("delete the #%v word", id))
+
+	fmt.Println(ctx.GetString("questionGroup"))
+
+	err := controller.questionService.DeleteQuestion(id)
+
+	if err != nil {
+		if errors.Is(err, utils.ErrNoQuestion) {
+			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, err.Error(), nil)
+			return
+		}
+		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, err.Error(), nil)
+		return
+	}
+
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
 }
 
 func (controller *QuestionController) GetQuestionById(ctx *gin.Context) {

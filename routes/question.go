@@ -24,6 +24,7 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 	router := rg.Group("/question", routeController.userMiddleware.ExtractUser())
 
 	{
+		// ?group=<group>
 		router.GET("/all", routeController.questionController.AllQuestions)
 		router.GET("/random", routeController.questionController.RandomQuestions)
 	}

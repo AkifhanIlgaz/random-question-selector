@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
 	"github.com/AkifhanIlgaz/random-question-selector/services"
@@ -118,12 +119,36 @@ func (controller *QuestionController) GetQuestionById(ctx *gin.Context) {
 }
 
 func (controller *QuestionController) RandomQuestions(ctx *gin.Context) {
-	count := ctx.Query("count")
-	response(ctx, fmt.Sprintf("get %v random questions", count))
+	count, err := strconv.Atoi(ctx.Query("count"))
+	if err != nil {
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, "Please give valid count", nil)
+		return
+	}
+	group := ctx.Query("group")
+
+	questions, err := controller.questionService.GetRandomQuestionsByGroup(group, count)
+	if err != nil {
+		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, utils.ErrSomethingWentWrong.Error(), nil)
+		return
+	}
+
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+		"data": questions,
+	})
 }
 
 func (controller *QuestionController) AllQuestions(ctx *gin.Context) {
-	response(ctx, "get all questions")
+	group := ctx.Query("group")
+
+	questions, err := controller.questionService.GetAllQuestionsOfGroup(group)
+	if err != nil {
+		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, utils.ErrSomethingWentWrong.Error(), nil)
+		return
+	}
+
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+		"data": questions,
+	})
 }
 
 func response(ctx *gin.Context, message string) {

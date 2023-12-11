@@ -129,7 +129,7 @@ func (service *QuestionService) GetRandomQuestionsByGroup(group string, count in
 func buildIdQuery(objectId string) (primitive.M, error) {
 	id, err := primitive.ObjectIDFromHex(objectId)
 	if err != nil {
-		return nil, fmt.Errorf("delete question: %w", err)
+		return nil, fmt.Errorf("build id query: %w", err)
 	}
 
 	query := bson.M{

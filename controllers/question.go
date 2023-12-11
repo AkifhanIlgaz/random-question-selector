@@ -42,6 +42,25 @@ func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 
 func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
+
+	var input models.UpdateQuestionInput
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		return
+	}
+
+	updatedQuestion := models.Question{
+		Group:        input.Group,
+		Text:         input.Text,
+		Answer:       input.Answer,
+		AnswerSource: input.AnswerSource,
+	}
+
+	err := controller.questionService.UpdateQuestion(id, updatedQuestion)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	response(ctx, fmt.Sprintf("edit the #%v word", id))
 }
 

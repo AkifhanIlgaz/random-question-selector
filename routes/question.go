@@ -33,6 +33,7 @@ func (routeController *QuestionRouteController) QuestionRoute(rg *gin.RouterGrou
 		adminRoute.POST("", routeController.questionController.AddQuestion)
 		adminRoute.PUT("", routeController.questionController.UpdateQuestion)
 		adminRoute.DELETE("", routeController.questionController.DeleteQuestion)
+		// ? Should be the admin
 		adminRoute.GET("", routeController.questionController.GetQuestionById)
 	}
 

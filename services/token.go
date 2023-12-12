@@ -3,12 +3,11 @@ package services
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/AkifhanIlgaz/random-question-selector/cfg"
+	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt"
 	"github.com/thanhpk/randstr"
@@ -18,11 +17,6 @@ type TokenService struct {
 	redisClient *redis.Client
 	config      *cfg.Config
 	ctx         context.Context
-}
-
-type AccessTokenClaims struct {
-	Groups []string `json:"groups"`
-	jwt.StandardClaims
 }
 
 type RedisClaims struct {
@@ -38,7 +32,7 @@ func NewTokenService(ctx context.Context, redisClient *redis.Client, config *cfg
 	}
 }
 
-func (service *TokenService) GenerateAccessToken(uid string, groups []string) (string, error) {
+func (service *TokenService) GenerateAccessToken(uid string) (string, error) {
 	decodedPrivateKey, err := base64.StdEncoding.DecodeString(service.config.AccessTokenPrivateKey)
 	if err != nil {
 		return "", fmt.Errorf("could not decode key: %w", err)
@@ -51,8 +45,7 @@ func (service *TokenService) GenerateAccessToken(uid string, groups []string) (s
 
 	now := time.Now().UTC()
 
-	claims := AccessTokenClaims{}
-	claims.Groups = groups
+	claims := jwt.StandardClaims{}
 	claims.Subject = uid
 	claims.ExpiresAt = now.Add(service.config.AccessTokenExpiresIn).Unix()
 	claims.IssuedAt = now.Unix()
@@ -66,15 +59,15 @@ func (service *TokenService) GenerateAccessToken(uid string, groups []string) (s
 	return token, nil
 }
 
-func (service *TokenService) ParseAccessToken(token string) (*AccessTokenClaims, error) {
+func (service *TokenService) ParseAccessToken(token string) (*jwt.StandardClaims, error) {
 	decodedPublicKey, err := base64.StdEncoding.DecodeString(service.config.AccessTokenPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("could not decode: %w", err)
 	}
 
-	parsedToken, err := jwt.ParseWithClaims(token, &AccessTokenClaims{}, func(t *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-			return AccessTokenClaims{}, fmt.Errorf("unexpected method: %s", t.Header["alg"])
+			return jwt.StandardClaims{}, fmt.Errorf("unexpected method: %s", t.Header["alg"])
 		}
 
 		return jwt.ParseRSAPublicKeyFromPEM(decodedPublicKey)
@@ -83,7 +76,7 @@ func (service *TokenService) ParseAccessToken(token string) (*AccessTokenClaims,
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	claims, ok := parsedToken.Claims.(*AccessTokenClaims)
+	claims, ok := parsedToken.Claims.(*jwt.StandardClaims)
 	if !ok || !parsedToken.Valid {
 		return nil, fmt.Errorf("validate: invalid token")
 	}
@@ -91,18 +84,10 @@ func (service *TokenService) ParseAccessToken(token string) (*AccessTokenClaims,
 	return claims, nil
 }
 
-func (service *TokenService) GenerateRefreshToken(uid string, groups []string) (string, error) {
+func (service *TokenService) GenerateRefreshToken(uid string) (string, error) {
 	refreshToken := randstr.String(32)
 
-	claims, err := encode(RedisClaims{
-		Subject: uid,
-		Groups:  groups,
-	})
-	if err != nil {
-		return "", fmt.Errorf("generate refresh token: %w", err)
-	}
-
-	err = service.redisClient.Set(service.ctx, refreshToken, claims, 0).Err()
+	err := service.redisClient.Set(service.ctx, refreshToken, uid, 0).Err()
 	if err != nil {
 		return "", fmt.Errorf("generate refresh token: %w", err)
 	}
@@ -118,27 +103,14 @@ func (service *TokenService) DeleteRefreshToken(refreshToken string) error {
 	return nil
 }
 
-func (service *TokenService) GetClaims(refreshToken string) (RedisClaims, error) {
-
-	claims, err := service.redisClient.Get(service.ctx, refreshToken).Bytes()
+func (service *TokenService) GetSub(refreshToken string) (string, error) {
+	sub, err := service.redisClient.Get(service.ctx, refreshToken).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return RedisClaims{}, errors.New("refresh token doesn't exist")
-
+			return "", utils.ErrNoRefreshToken
 		}
-		return RedisClaims{}, fmt.Errorf("get uid by refresh token: %w", err)
+		return "", utils.ErrSomethingWentWrong
 	}
 
-	return decode(claims)
-
-}
-func encode(v RedisClaims) ([]byte, error) {
-	return json.Marshal(&v)
-}
-
-func decode(v []byte) (RedisClaims, error) {
-	var claims RedisClaims
-	err := json.Unmarshal(v, &claims)
-
-	return claims, err
+	return sub, nil
 }

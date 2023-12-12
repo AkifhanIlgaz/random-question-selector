@@ -158,15 +158,6 @@ func (controller *QuestionController) AllQuestions(ctx *gin.Context) {
 	})
 }
 
-func response(ctx *gin.Context, message string) {
-	questionGroup := ctx.GetString("questionGroup")
-
-	ctx.JSON(http.StatusFound, gin.H{
-		"group":   questionGroup,
-		"message": message,
-	})
-}
-
 func isAdmin(groups []string, group string) bool {
 	return slices.Contains(groups, group)
 }

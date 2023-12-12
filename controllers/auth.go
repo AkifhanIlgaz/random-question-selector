@@ -44,13 +44,13 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex(), newUser.Groups)
+	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex())
 	if err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex(), newUser.Groups)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex())
 	if err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
@@ -87,13 +87,13 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex(), user.Groups)
+	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex())
 	if err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex(), user.Groups)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex())
 	if err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
@@ -135,7 +135,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	}
 
 	// Check if refresh token for the current user exists
-	claims, err := controller.tokenService.GetClaims(refreshToken)
+	sub, err := controller.tokenService.GetSub(refreshToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "refresh token doesn't exist") {
 			utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
@@ -145,7 +145,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	access_token, err := controller.tokenService.GenerateAccessToken(claims.Subject, claims.Groups)
+	access_token, err := controller.tokenService.GenerateAccessToken(sub)
 	if err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
@@ -156,7 +156,7 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	refresh_token, err := controller.tokenService.GenerateRefreshToken(claims.Subject, claims.Groups)
+	refresh_token, err := controller.tokenService.GenerateRefreshToken(sub)
 	if err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return

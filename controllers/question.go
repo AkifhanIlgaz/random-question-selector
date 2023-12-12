@@ -24,13 +24,6 @@ func NewQuestionController(questionService *services.QuestionService) *QuestionC
 	}
 }
 
-// ShowAccount godoc
-// @Summary      Add new question
-// @Description  add new question
-// @Tags         accounts
-// @Accept       json
-// @Produce      json
-// @Router       /question [post]
 func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 	var question models.Question
 	if err := ctx.ShouldBindJSON(&question); err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/AkifhanIlgaz/random-question-selector/middleware"
 	"github.com/AkifhanIlgaz/random-question-selector/routes"
 	"github.com/AkifhanIlgaz/random-question-selector/services"
+	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -18,45 +19,29 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-
-	_ "github.com/AkifhanIlgaz/random-question-selector/docs"
 )
-
-const mongoDBName = "random-question-selector"
-const mongoUsersCollection = "users"
-const mongoQuestionCollection = "questions"
 
 func main() {
 	config, err := cfg.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Could not read environment variables", err)
 	}
-
 	ctx := context.TODO()
 
 	mongoClient, err := connectToMongo(ctx, config.MongoUri)
 	if err != nil {
 		log.Fatal("Could not connect to mongo", err)
 	}
-
 	defer mongoClient.Disconnect(ctx)
 
 	redisClient, err := connectToRedis(ctx, config.RedisUri)
 	if err != nil {
 		log.Fatal("Could not connect to redis", err)
 	}
-
 	defer redisClient.Close()
 
-	value, err := redisClient.Get(ctx, "test").Result()
-	if err == redis.Nil {
-		fmt.Println("key: test does not exist")
-	} else if err != nil {
-		log.Fatal("error with redis", err)
-	}
-
-	userCollection := mongoClient.Database(mongoDBName).Collection(mongoUsersCollection)
-	questionCollection := mongoClient.Database(mongoDBName).Collection(mongoQuestionCollection)
+	userCollection := mongoClient.Database(utils.MongoDBName).Collection(utils.MongoUsersCollection)
+	questionCollection := mongoClient.Database(utils.MongoDBName).Collection(utils.MongoQuestionCollection)
 
 	opt := options.Index()
 	opt.SetUnique(true)
@@ -78,19 +63,19 @@ func main() {
 
 	authRouteController := routes.NewAuthRouteController(authController, userMiddleware)
 	userRouteController := routes.NewUserRouteController(userController, userMiddleware, questionMiddleware)
-	questionRouterController := routes.NewQuestionRouteController(questionController, userMiddleware, questionMiddleware)
+	questionRouteController := routes.NewQuestionRouteController(questionController, userMiddleware, questionMiddleware)
 
 	server := gin.Default()
 	setCors(server)
 
 	router := server.Group("/api")
-	router.GET("/healthchecker", userMiddleware.ExtractUser(), func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": value})
+	router.GET("/healthchecker", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": "API is healthy"})
 	})
 
 	authRouteController.AuthRoute(router)
 	userRouteController.UserRoute(router)
-	questionRouterController.QuestionRoute(router)
+	questionRouteController.QuestionRoute(router)
 
 	log.Fatal(server.Run(":" + config.Port))
 }
@@ -126,7 +111,6 @@ func connectToRedis(ctx context.Context, uri string) (*redis.Client, error) {
 	}
 
 	fmt.Println("Redis client connected successfully...")
-
 	return client, nil
 }
 

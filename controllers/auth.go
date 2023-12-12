@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/AkifhanIlgaz/random-question-selector/services"
 	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/swaggo/swag/example/celler/httputil"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -30,29 +32,29 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 	var user models.SignUpInput
 
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	newUser, err := controller.userService.CreateUser(&user)
 	if err != nil {
 		if strings.Contains(err.Error(), "email already exist") {
-			utils.ResponseWithStatusMessage(ctx, http.StatusConflict, models.StatusFail, err.Error(), nil)
+			httputil.NewError(ctx, http.StatusConflict, err)
 			return
 		}
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadGateway, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadGateway, err)
 		return
 	}
 
 	access_token, err := controller.tokenService.GenerateAccessToken(newUser.ID.Hex())
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	refresh_token, err := controller.tokenService.GenerateRefreshToken(newUser.ID.Hex())
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -68,34 +70,34 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 func (controller *AuthController) SignIn(ctx *gin.Context) {
 	var credentials *models.SignInInput
 	if err := ctx.ShouldBindJSON(&credentials); err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := controller.userService.FindUserByEmail(credentials.Email)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, "Invalid email or password", nil)
+			httputil.NewError(ctx, http.StatusBadRequest, utils.ErrInvalidCredentials)
 			return
 		}
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := utils.VerifyPassword(user.Password, credentials.Password); err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, "Invalid email or password", nil)
+		httputil.NewError(ctx, http.StatusBadRequest, utils.ErrInvalidCredentials)
 		return
 	}
 
 	access_token, err := controller.tokenService.GenerateAccessToken(user.ID.Hex())
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	refresh_token, err := controller.tokenService.GenerateRefreshToken(user.ID.Hex())
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -106,14 +108,13 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
 		"access_token": access_token,
 	})
-
 }
 
 func (controller *AuthController) SignOut(ctx *gin.Context) {
 	refreshToken, _ := ctx.Cookie("refresh_token")
 
 	if err := controller.tokenService.DeleteRefreshToken(refreshToken); err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -122,43 +123,40 @@ func (controller *AuthController) SignOut(ctx *gin.Context) {
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, true)
 
 	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
-	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
-	message := "could not refresh access token"
-
 	refreshToken, err := ctx.Cookie("refresh_token")
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusForbidden, models.StatusFail, message, nil)
+		httputil.NewError(ctx, http.StatusForbidden, utils.ErrNoRefreshToken)
 		return
 	}
 
 	// Check if refresh token for the current user exists
 	sub, err := controller.tokenService.GetSub(refreshToken)
 	if err != nil {
-		if strings.Contains(err.Error(), "refresh token doesn't exist") {
-			utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		if errors.Is(err, utils.ErrNoRefreshToken) {
+			httputil.NewError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	access_token, err := controller.tokenService.GenerateAccessToken(sub)
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := controller.tokenService.DeleteRefreshToken(refreshToken); err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	refresh_token, err := controller.tokenService.GenerateRefreshToken(sub)
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
+		httputil.NewError(ctx, http.StatusBadRequest, err)
 		return
 	}
 

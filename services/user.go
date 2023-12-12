@@ -67,12 +67,10 @@ func (service *UserService) FindUserById(id string) (*models.User, error) {
 	err = service.collection.FindOne(service.ctx, query).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("find user by id: %w", err)
+			return nil, utils.ErrNoUser
 		}
 		return nil, fmt.Errorf("find user by id: %w", err)
 	}
-
-	fmt.Println("user", user)
 
 	return &user, nil
 }

@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/AkifhanIlgaz/random-question-selector/models"
 	"github.com/AkifhanIlgaz/random-question-selector/services"
 	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/swaggo/swag/example/celler/httputil"
 	"golang.org/x/exp/slices"
 )
 
@@ -36,20 +38,22 @@ func (controller *UserController) AssignGroup(ctx *gin.Context) {
 
 	candidate, err := controller.userService.FindUserById(id)
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, "User doesn't exist", nil)
+		if errors.Is(err, utils.ErrNoUser) {
+			httputil.NewError(ctx, http.StatusNotFound, utils.ErrNoUser)
+		}
 		return
 	}
 
 	usersGroups := candidate.Groups
 	if slices.Contains(usersGroups, group) {
-		utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, "User is already admin of the group", nil)
+		httputil.NewError(ctx, http.StatusNotFound, utils.ErrAlreadyAdmin)
 		return
 	}
 
 	usersGroups = append(usersGroups, group)
 	_, err = controller.userService.UpdateUserById(id, "groups", usersGroups)
 	if err != nil {
-		utils.ResponseWithStatusMessage(ctx, http.StatusInternalServerError, models.StatusFail, "Something went wrong", nil)
+		httputil.NewError(ctx, http.StatusInternalServerError, utils.ErrSomethingWentWrong)
 		return
 	}
 

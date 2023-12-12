@@ -14,16 +14,39 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+
+	_ "github.com/AkifhanIlgaz/random-question-selector/docs"
 )
 
 const mongoDBName = "random-question-selector"
 const mongoUsersCollection = "users"
 const mongoQuestionCollection = "questions"
 
+// @title           Random Question Selector API
+// @version         1.0
+// @description     The API documentation of Random Question Selector.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8000
+// @BasePath  /api
+
+// @securityDefinitions.basic  BasicAuth
+
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
 	config, err := cfg.LoadConfig(".")
 	if err != nil {
@@ -79,8 +102,9 @@ func main() {
 	questionRouterController := routes.NewQuestionRouteController(questionController, userMiddleware, questionMiddleware)
 
 	server := gin.Default()
-
 	setCors(server)
+
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, func(c *ginSwagger.Config) {}))
 
 	router := server.Group("/api")
 	router.GET("/healthchecker", userMiddleware.ExtractUser(), func(ctx *gin.Context) {

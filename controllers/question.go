@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -45,27 +44,35 @@ func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
 }
 
-// TODO:
+// TODO: Fully implement
 func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 	id := ctx.Query("id")
 
-	var updatedQuestion models.Question
-	if err := ctx.ShouldBindJSON(&updatedQuestion); err != nil {
+	var updates map[string]string
+	if err := ctx.BindJSON(&updates); err != nil {
 		utils.ResponseWithStatusMessage(ctx, http.StatusBadRequest, models.StatusFail, err.Error(), nil)
 		return
 	}
 
 	user := ctx.MustGet("currentUser").(*models.User)
-	if !isAdmin(user.Groups, updatedQuestion.Group) {
+	if newGroup, ok := updates["group"]; ok {
+		if !isAdmin(user.Groups, newGroup) {
+			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, utils.ErrNotAdmin.Error(), nil)
+			return
+		}
+	}
+
+	err := controller.questionService.UpdateQuestion(id, updates)
+	if err != nil {
+		if errors.Is(err, utils.ErrNoQuestion) {
+			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, utils.ErrNoQuestion.Error(), nil)
+			return
+		}
 		utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, utils.ErrNotAdmin.Error(), nil)
 		return
 	}
 
-	err := controller.questionService.UpdateQuestion(id, updatedQuestion)
-	if err != nil {
-		fmt.Println(err)
-	}
-
+	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
 }
 
 func (controller *QuestionController) DeleteQuestion(ctx *gin.Context) {

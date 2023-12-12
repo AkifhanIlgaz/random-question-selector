@@ -68,19 +68,25 @@ func (service *QuestionService) GetQuestion(questionId string) (*models.Question
 	return &question, nil
 }
 
-func (service *QuestionService) UpdateQuestion(questionId string, updatedQuestion models.Question) error {
+func (service *QuestionService) UpdateQuestion(questionId string, updates map[string]string) error {
 	query, err := buildIdQuery(questionId)
 	if err != nil {
 		return fmt.Errorf("update question: %w", err)
 	}
 
-	res, err := service.collection.ReplaceOne(service.ctx, query, updatedQuestion)
+	updatePairs := bson.M{}
+	for field, value := range updates {
+		updatePairs[field] = value
+	}
+
+	res, err := service.collection.UpdateOne(service.ctx, query, bson.M{
+		"$set": updatePairs,
+	})
 	if err != nil {
 		return fmt.Errorf("update question: %w", err)
 	}
-
 	if res.MatchedCount == 0 {
-		return fmt.Errorf("no question found with the id: %v", questionId)
+		return utils.ErrNoQuestion
 	}
 
 	return nil

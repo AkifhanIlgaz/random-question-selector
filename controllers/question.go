@@ -50,7 +50,7 @@ func (controller *QuestionController) AddQuestion(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
+	utils.ResponseWithSuccess(ctx, nil)
 }
 
 func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
@@ -80,7 +80,7 @@ func (controller *QuestionController) UpdateQuestion(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
+	utils.ResponseWithSuccess(ctx, nil)
 }
 
 func (controller *QuestionController) DeleteQuestion(ctx *gin.Context) {
@@ -112,7 +112,7 @@ func (controller *QuestionController) DeleteQuestion(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
+	utils.ResponseWithSuccess(ctx, nil)
 }
 
 func (controller *QuestionController) GetQuestionById(ctx *gin.Context) {
@@ -128,7 +128,7 @@ func (controller *QuestionController) GetQuestionById(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+	utils.ResponseWithSuccess(ctx, gin.H{
 		"data": question,
 	})
 }
@@ -147,7 +147,7 @@ func (controller *QuestionController) RandomQuestions(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+	utils.ResponseWithSuccess(ctx, gin.H{
 		"data": questions,
 	})
 }
@@ -161,7 +161,7 @@ func (controller *QuestionController) AllQuestions(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
+	utils.ResponseWithSuccess(ctx, gin.H{
 		"data": questions,
 	})
 }

@@ -6,6 +6,7 @@ var (
 	ErrNoQuestion         error = errors.New("question doesn't exist")
 	ErrAlreadyAdmin       error = errors.New("user is already admin of the group")
 	ErrNotAdmin           error = errors.New("user isn't the admin of group")
+	ErrNotLoggedIn        error = errors.New("not logged in")
 	ErrNoUser             error = errors.New("user doesn't exist")
 	ErrSomethingWentWrong error = errors.New("something went wrong")
 	ErrNoRefreshToken     error = errors.New("refresh token doesn't exist")

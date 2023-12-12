@@ -62,9 +62,7 @@ func (controller *AuthController) SignUp(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusCreated, models.StatusSuccess, "", map[string]any{
-		"data": gin.H{"user": models.FilteredResponse(newUser)},
-	})
+	utils.ResponseWithSuccess(ctx, gin.H{"user": models.FilteredResponse(newUser)})
 }
 
 func (controller *AuthController) SignIn(ctx *gin.Context) {
@@ -105,9 +103,7 @@ func (controller *AuthController) SignIn(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
-		"access_token": access_token,
-	})
+	utils.ResponseWithSuccess(ctx, nil)
 }
 
 func (controller *AuthController) SignOut(ctx *gin.Context) {
@@ -122,7 +118,7 @@ func (controller *AuthController) SignOut(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, true)
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
+	utils.ResponseWithSuccess(ctx, nil)
 }
 
 func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
@@ -164,7 +160,5 @@ func (controller *AuthController) RefreshAccessToken(ctx *gin.Context) {
 	ctx.SetCookie("refresh_token", refresh_token, controller.config.RefreshTokenMaxAge*60, "/", "localhost", false, true)
 	ctx.SetCookie("logged_in", "true", controller.config.AccessTokenMaxAge*60, "/", "localhost", false, false)
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
-		"access_token": access_token,
-	})
+	utils.ResponseWithSuccess(ctx, nil)
 }

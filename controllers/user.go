@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/AkifhanIlgaz/random-question-selector/models"
 	"github.com/AkifhanIlgaz/random-question-selector/services"
 	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-gonic/gin"
@@ -20,16 +19,6 @@ func NewUserController(userService *services.UserService) *UserController {
 	return &UserController{
 		userService: userService,
 	}
-}
-
-func (controller *UserController) GetMe(ctx *gin.Context) {
-	currentUser := ctx.MustGet("currentUser").(*models.User)
-
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", map[string]any{
-		"data": gin.H{
-			"user": models.FilteredResponse(currentUser),
-		},
-	})
 }
 
 func (controller *UserController) AssignGroup(ctx *gin.Context) {
@@ -57,5 +46,5 @@ func (controller *UserController) AssignGroup(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseWithStatusMessage(ctx, http.StatusOK, models.StatusSuccess, "", nil)
+	utils.ResponseWithSuccess(ctx, nil)
 }

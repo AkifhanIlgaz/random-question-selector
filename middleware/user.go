@@ -8,6 +8,7 @@ import (
 	"github.com/AkifhanIlgaz/random-question-selector/services"
 	"github.com/AkifhanIlgaz/random-question-selector/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/swaggo/swag/example/celler/httputil"
 )
 
 type UserMiddleware struct {
@@ -38,20 +39,20 @@ func (middleware *UserMiddleware) ExtractUser() gin.HandlerFunc {
 		}
 
 		if accessToken == "" {
-			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, "You are not logged in", nil)
+			httputil.NewError(ctx, http.StatusUnauthorized, utils.ErrNotLoggedIn)
 			return
 		}
 
 		// ! Access token is expired situations must be handled by the client
 		claims, err := middleware.tokenService.ParseAccessToken(accessToken)
 		if err != nil {
-			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, err.Error(), nil)
+			httputil.NewError(ctx, http.StatusUnauthorized, err)
 			return
 		}
 
 		user, err := middleware.userService.FindUserById(claims.Subject)
 		if err != nil {
-			utils.ResponseWithStatusMessage(ctx, http.StatusNotFound, models.StatusFail, "User does not exist", nil)
+			httputil.NewError(ctx, http.StatusUnauthorized, utils.ErrNoUser)
 			return
 		}
 
@@ -66,18 +67,18 @@ func (middleware *UserMiddleware) IsAdminOfGroup() gin.HandlerFunc {
 
 		raw, ok := ctx.Get("currentUser")
 		if !ok {
-			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, "You are not logged in", nil)
+			httputil.NewError(ctx, http.StatusUnauthorized, utils.ErrNotLoggedIn)
 			return
 		}
 
 		user, ok := raw.(*models.User)
 		if !ok {
-			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, "You are not logged in", nil)
+			httputil.NewError(ctx, http.StatusUnauthorized, utils.ErrNotLoggedIn)
 			return
 		}
 
 		if !contains(user.Groups, group) {
-			utils.ResponseWithStatusMessage(ctx, http.StatusUnauthorized, models.StatusFail, "You are not admin of this group", nil)
+			httputil.NewError(ctx, http.StatusUnauthorized, utils.ErrNotAdmin)
 			return
 		}
 

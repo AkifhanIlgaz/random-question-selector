@@ -22,7 +22,7 @@ func (routeController *AuthRouteController) AuthRoute(rg *gin.RouterGroup) {
 	router := rg.Group("/auth")
 
 	router.POST("/register", routeController.authController.SignUp)
-	router.POST("/login", routeController.authController.SignIn)
-	router.GET("/logout", routeController.userMiddleware.ExtractUser(), routeController.authController.SignOut)
+	router.POST("/signin", routeController.authController.SignIn)
+	router.GET("/signout", routeController.userMiddleware.ExtractUser(), routeController.authController.SignOut)
 	router.GET("/refresh", routeController.authController.RefreshAccessToken)
 }
